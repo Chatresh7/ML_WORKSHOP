@@ -487,6 +487,7 @@ if st.session_state.page == "🏠 Home":
     
 # Stock Market Dashboard
 # Stock Market Dashboard
+# 📊 Stock Market Dashboard
 elif st.session_state.page == "📊 Stock Market Dashboard":
     st.title("📊 Stock Market Dashboard")
     
@@ -545,6 +546,59 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
             else:
                 st.warning("⚠ Could not retrieve stock data. Try again later.")
 
+    # === Profit/Loss & Future Price Prediction Section === #
+    st.subheader("📈 Predict Future Prices & Profit/Loss")
+
+    num_stocks = st.number_input("🛒 Enter number of stocks to buy", min_value=1, step=1)
+    total_cost = num_stocks * current_price
+
+    if st.button("📊 Fetch Profit/Loss and Future Prediction"):
+        # Prepare data for SVM
+        df['Time'] = (df.index - df.index[0]).total_seconds() / 3600  # Convert time to hours
+        X = df[['Time']]
+        y = df['Close']
+
+        # Train-test split (80:20)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # Scale the data
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # Train SVM model
+        svm_model = SVR(kernel='rbf')
+        svm_model.fit(X_train_scaled, y_train)
+
+        # Predict future prices
+        future_hours = np.arange(df['Time'].max() + 1, df['Time'].max() + 24, 1).reshape(-1, 1)
+        future_hours_scaled = scaler.transform(future_hours)
+        predicted_prices = svm_model.predict(future_hours_scaled)
+
+        # Create future dataframe
+        future_times = pd.date_range(start=df.index[-1], periods=len(future_hours), freq="H")
+        future_df = pd.DataFrame({"Time": future_times, "Predicted Price": predicted_prices})
+
+        # Plot predictions
+        st.subheader("📈 Future Stock Price Prediction (SVM Model)")
+        fig_pred = px.line(future_df, x="Time", y="Predicted Price", 
+                            title="📈 Predicted Stock Prices (Next 24 Hours)", 
+                            template="plotly_dark")
+        st.plotly_chart(fig_pred)
+
+        # === Profit/Loss Calculation === #
+        future_price = predicted_prices[-1]  # Last predicted price
+        future_value = num_stocks * future_price
+        profit_loss = future_value - total_cost
+        profit_loss_percentage = (profit_loss / total_cost) * 100
+
+        if profit_loss > 0:
+            st.success(f"📈 Profit: ${profit_loss:.2f} ({profit_loss_percentage:.2f}%)")
+            st.info(f"💡 Recommendation: Consider selling when price reaches ${future_price:.2f}")
+        else:
+            st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
+            st.warning("💡 Recommendation: Do not invest at this time")
+
 # === Function to Find the Highest Stock === #
 def find_highest_stock():
     highest_price = 0
@@ -569,20 +623,6 @@ def find_highest_stock():
                 highest_data = df
 
     return highest_company, highest_price, stock_prices, highest_data
-
-            
-            # Profit/Loss Calculation
-    future_price = predicted_prices[-1]
-    future_value = num_stocks * future_price
-    profit_loss = future_value - total_cost
-    profit_loss_percentage = (profit_loss / total_cost) * 100
-
-    if profit_loss > 0:
-        st.success(f"📈 Profit: ${profit_loss:.2f} ({profit_loss_percentage:.2f}%)")
-        st.info(f"💡 Recommendation: Consider selling when price reaches ${future_price:.2f}")
-    else:
-        st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
-        st.warning("💡 Recommendation: Do not invest at this time")
 
 # Price Alert Section
 # Price Alert Section
