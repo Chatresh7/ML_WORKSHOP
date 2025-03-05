@@ -33,23 +33,30 @@ st.markdown(
 )
 
 import mysql.connector
+import streamlit as st
 
 # Database configuration
 db_config = {
-    'host': 'localhost',
-    'user': 'root',  # Replace with your MySQL username
-    'password': '',  # Replace with your MySQL password
+    'host': 'localhost',  # Replace with your MySQL host
+    'user': 'root',       # Replace with your MySQL username
+    'password': '',       # Replace with your MySQL password
     'database': 'stock_app_db'  # Replace with your database name
 }
 
 # Function to connect to the database
 def connect_db():
-    return mysql.connector.connect(**db_config)
+    try:
+        return mysql.connector.connect(**db_config)
+    except mysql.connector.Error as err:
+        st.error(f"Database connection error: {err}")
+        return None
 
 # Authentication Functions
 def authenticate(username, password):
     """Check if the username and password are valid."""
     conn = connect_db()
+    if conn is None:
+        return False, None
     cursor = conn.cursor()
     query = "SELECT name FROM users WHERE username = %s AND password = %s"
     cursor.execute(query, (username, password))
@@ -63,6 +70,8 @@ def authenticate(username, password):
 def register_user(username, password, name):
     """Register a new user."""
     conn = connect_db()
+    if conn is None:
+        return False
     cursor = conn.cursor()
     try:
         query = "INSERT INTO users (username, password, name) VALUES (%s, %s, %s)"
@@ -72,7 +81,7 @@ def register_user(username, password, name):
         conn.close()
         return True
     except mysql.connector.Error as err:
-        print("Something went wrong: {}".format(err))
+        st.error(f"Registration failed: {err}")
         cursor.close()
         conn.close()
         return False
