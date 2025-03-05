@@ -186,7 +186,7 @@ st.markdown(
 )
 
 # API Key and other original code continues...
-API_KEY = "B1N3W1H7PD3F8ZRG"
+API_KEY = "CWGDB94QKKPFDCEK"
 
 # Stock Symbols
 companies = {
