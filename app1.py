@@ -32,33 +32,40 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-import mysql.connector
+import sqlite3
 import streamlit as st
 
-# Database configuration
-db_config = {
-    'host': 'localhost',  # Replace with your MySQL host
-    'user': 'root',       # Replace with your MySQL username
-    'password': '',       # Replace with your MySQL password
-    'database': 'stock_app_db'  # Replace with your database name
-}
+# SQLite Database Configuration
+DATABASE_FILE = "users.db"
 
-# Function to connect to the database
+# Function to connect to SQLite database
 def connect_db():
-    try:
-        return mysql.connector.connect(**db_config)
-    except mysql.connector.Error as err:
-        st.error(f"Database connection error: {err}")
-        return None
+    return sqlite3.connect(DATABASE_FILE)
+
+# Function to initialize the database
+def init_db():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            name TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# Initialize the database
+init_db()
 
 # Authentication Functions
 def authenticate(username, password):
     """Check if the username and password are valid."""
     conn = connect_db()
-    if conn is None:
-        return False, None
     cursor = conn.cursor()
-    query = "SELECT name FROM users WHERE username = %s AND password = %s"
+    query = "SELECT name FROM users WHERE username = ? AND password = ?"
     cursor.execute(query, (username, password))
     result = cursor.fetchone()
     cursor.close()
@@ -70,18 +77,16 @@ def authenticate(username, password):
 def register_user(username, password, name):
     """Register a new user."""
     conn = connect_db()
-    if conn is None:
-        return False
     cursor = conn.cursor()
     try:
-        query = "INSERT INTO users (username, password, name) VALUES (%s, %s, %s)"
+        query = "INSERT INTO users (username, password, name) VALUES (?, ?, ?)"
         cursor.execute(query, (username, password, name))
         conn.commit()
         cursor.close()
         conn.close()
         return True
-    except mysql.connector.Error as err:
-        st.error(f"Registration failed: {err}")
+    except sqlite3.IntegrityError:
+        # Handle duplicate username
         cursor.close()
         conn.close()
         return False
@@ -123,7 +128,6 @@ def login_page():
     
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()  # Stop execution to prevent access to the rest of the app
-
 # Check Authentication
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
