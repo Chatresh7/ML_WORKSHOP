@@ -741,7 +741,7 @@ elif st.session_state.page == "🔄 Stock Comparison":
             st.warning("⚠ Failed to fetch comparison data")
 
 # Top Gainer & Loser Section
-elif st.session_state.page == "📈 Top Gainer & Loser":
+elif st.session_state.page == "📊 Top Gainers & Losers":
     st.title("📈 Top Gainer & Loser")
 
     gainers = {}
