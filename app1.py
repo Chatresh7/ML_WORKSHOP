@@ -570,6 +570,7 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
             else:
                 st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
                 st.warning("💡 Recommendation: Do not invest at this time")
+
 # Top Gainers & Losers Section
 elif st.session_state.page == "📊 Top Gainers & Losers":
     st.title("📊 Top Gainers & Losers")
