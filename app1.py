@@ -580,7 +580,13 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
 
     for company, symbol in companies.items():
         stock_data = get_stock_data(symbol)
-        if stock_data:
+
+        # 🔍 Debugging: Print the API response to check the format
+        if not stock_data or not isinstance(stock_data, dict):
+            st.error(f"❌ Failed to fetch data for {company} ({symbol}). API response: {stock_data}")
+            continue  # Skip this company if data is invalid
+
+        try:
             df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
             df.index = pd.to_datetime(df.index)
             df = df.sort_index()
@@ -594,38 +600,57 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
                 gainers[company] = change
             else:
                 losers[company] = change
+        except Exception as e:
+            st.error(f"❌ Error processing data for {company} ({symbol}): {str(e)}")
+            continue  # Skip this company if there's an error
 
     # Display Top Gainer
     if gainers:
         top_gainer = max(gainers, key=gainers.get)
         st.subheader(f"📈 Top Gainer: {top_gainer}")
         symbol = companies[top_gainer]
-        df = pd.DataFrame.from_dict(get_stock_data(symbol), orient="index", dtype=float)
-        df.index = pd.to_datetime(df.index)
-        df = df.sort_index()
-        df.columns = ["Open", "High", "Low", "Close", "Volume"]
+        stock_data = get_stock_data(symbol)
 
-        st.metric(label="📈 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
-        st.metric(label="📈 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+        if stock_data and isinstance(stock_data, dict):
+            try:
+                df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+                df.index = pd.to_datetime(df.index)
+                df = df.sort_index()
+                df.columns = ["Open", "High", "Low", "Close", "Volume"]
 
-        fig_gainer = px.line(df, x=df.index, y="Close", title=f"{top_gainer} Stock Price")
-        st.plotly_chart(fig_gainer)
+                st.metric(label="📈 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+                st.metric(label="📈 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+                fig_gainer = px.line(df, x=df.index, y="Close", title=f"{top_gainer} Stock Price")
+                st.plotly_chart(fig_gainer)
+            except Exception as e:
+                st.error(f"❌ Error processing data for {top_gainer}: {str(e)}")
+        else:
+            st.warning(f"⚠ Could not fetch data for {top_gainer}")
 
     # Display Top Loser
     if losers:
         top_loser = min(losers, key=losers.get)
         st.subheader(f"📉 Top Loser: {top_loser}")
         symbol = companies[top_loser]
-        df = pd.DataFrame.from_dict(get_stock_data(symbol), orient="index", dtype=float)
-        df.index = pd.to_datetime(df.index)
-        df = df.sort_index()
-        df.columns = ["Open", "High", "Low", "Close", "Volume"]
+        stock_data = get_stock_data(symbol)
 
-        st.metric(label="📉 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
-        st.metric(label="📉 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+        if stock_data and isinstance(stock_data, dict):
+            try:
+                df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+                df.index = pd.to_datetime(df.index)
+                df = df.sort_index()
+                df.columns = ["Open", "High", "Low", "Close", "Volume"]
 
-        fig_loser = px.line(df, x=df.index, y="Close", title=f"{top_loser} Stock Price")
-        st.plotly_chart(fig_loser)
+                st.metric(label="📉 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+                st.metric(label="📉 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+                fig_loser = px.line(df, x=df.index, y="Close", title=f"{top_loser} Stock Price")
+                st.plotly_chart(fig_loser)
+            except Exception as e:
+                st.error(f"❌ Error processing data for {top_loser}: {str(e)}")
+        else:
+            st.warning(f"⚠ Could not fetch data for {top_loser}")
 
 
 # Price Alert Section
