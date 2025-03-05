@@ -262,6 +262,31 @@ st.sidebar.info("""
 Date: 2025-03-03  
 Version: 4.1.9
 """)
+
+def find_highest_stock():
+    highest_price = 0
+    highest_company = None
+    highest_data = None
+
+    stock_prices = {}
+
+    for company, symbol in companies.items():
+        stock_data = get_stock_data(symbol)
+        if "Time Series (5min)" in stock_data:
+            df = pd.DataFrame.from_dict(stock_data["Time Series (5min)"], orient="index").astype(float)
+            df.index = pd.to_datetime(df.index)
+            df = df.sort_index()
+            highest_in_day = df["2. high"].max()  # Get highest stock price of the day
+            
+            stock_prices[company] = highest_in_day
+
+            if highest_in_day > highest_price:
+                highest_price = highest_in_day
+                highest_company = company
+                highest_data = df
+
+    return highest_company, highest_price, stock_prices, highest_data
+    
 # Home Page
 if st.session_state.page == "🏠 Home":
     # Add this at the top with other imports
@@ -484,30 +509,7 @@ if st.session_state.page == "🏠 Home":
             </div>
         </div>
         """, unsafe_allow_html=True)
-def find_highest_stock():
-    highest_price = 0
-    highest_company = None
-    highest_data = None
 
-    stock_prices = {}
-
-    for company, symbol in companies.items():
-        stock_data = get_stock_data(symbol)
-        if "Time Series (5min)" in stock_data:
-            df = pd.DataFrame.from_dict(stock_data["Time Series (5min)"], orient="index").astype(float)
-            df.index = pd.to_datetime(df.index)
-            df = df.sort_index()
-            highest_in_day = df["2. high"].max()  # Get highest stock price of the day
-            
-            stock_prices[company] = highest_in_day
-
-            if highest_in_day > highest_price:
-                highest_price = highest_in_day
-                highest_company = company
-                highest_data = df
-
-    return highest_company, highest_price, stock_prices, highest_data
-    
 # Stock Market Dashboard
 # 📊 Stock Market Dashboard
 elif st.session_state.page == "📊 Stock Market Dashboard":
