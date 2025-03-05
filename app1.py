@@ -486,6 +486,7 @@ if st.session_state.page == "🏠 Home":
         """, unsafe_allow_html=True)
     
 # Stock Market Dashboard
+# Stock Market Dashboard
 elif st.session_state.page == "📊 Stock Market Dashboard":
     st.title("📊 Stock Market Dashboard")
     
@@ -511,52 +512,64 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
 
         st.subheader(f"📈 {selected_company} Stock Details")
         st.info(f"💰 Current Price: ${current_price:.2f}")
-        st.success(f"📈 Highest Price: ${highest_price:.2f}")
-        st.warning(f"🔽 Starting Price: ${starting_price:.2f}")
+        st.success(f"📈 Highest Price Today: ${highest_price:.2f}")
+        st.warning(f"🔽 Opening Price: ${starting_price:.2f}")
 
         # Intraday Graph
         fig = px.line(df, x=df.index, y="Close", title="📊 Intraday Stock Prices", 
                      labels={"Close": "Stock Price"}, template="plotly_dark")
         st.plotly_chart(fig)
 
-        # Investment Calculator
-        num_stocks = st.number_input("🛒 Enter number of stocks to buy", min_value=1, step=1)
-        total_cost = num_stocks * current_price
-        st.info(f"💰 Total Investment: ${total_cost:.2f}")
+    # === New Section: Find the Highest Stock of the Day === #
+    st.subheader("🏆 Find Today's Top Stock")
+    
+    # Button to fetch the highest stock price
+    if st.button("🔍 Find Highest Stock Today"):
+        with st.spinner("Fetching data... Please wait."):
+            highest_company, highest_price, stock_prices, highest_data = find_highest_stock()
 
-        if st.button("📊 Fetch Profit/Loss and Future Prediction"):
-            # Prepare data for SVM
-            df['Time'] = (df.index - df.index[0]).total_seconds() / 3600  # Convert time to hours
-            X = df[['Time']]
-            y = df['Close']
+            if highest_company:
+                st.success(f"🚀 {highest_company} had the highest stock price today at **${highest_price:.2f}**")
+                
+                # Show a bar chart of all companies' highest stock prices
+                stock_df = pd.DataFrame(stock_prices.items(), columns=["Company", "Highest Price"])
+                fig = px.bar(stock_df, x="Company", y="Highest Price", color="Company", title="📈 Highest Stock Prices Today")
+                st.plotly_chart(fig)
+                
+                # Show the stock price movement of the highest company
+                st.subheader(f"📊 {highest_company} - Intraday Stock Price Trend")
+                fig2 = px.line(highest_data, x=highest_data.index, y="4. close", 
+                               title=f"{highest_company} Intraday Prices", 
+                               labels={"4. close": "Stock Price"})
+                st.plotly_chart(fig2)
+            else:
+                st.warning("⚠ Could not retrieve stock data. Try again later.")
+
+# === Function to Find the Highest Stock === #
+def find_highest_stock():
+    highest_price = 0
+    highest_company = None
+    highest_data = None
+
+    stock_prices = {}
+
+    for company, symbol in companies.items():
+        stock_data = get_stock_data(symbol)
+        if "Time Series (5min)" in stock_data:
+            df = pd.DataFrame.from_dict(stock_data["Time Series (5min)"], orient="index").astype(float)
+            df.index = pd.to_datetime(df.index)
+            df = df.sort_index()
+            highest_in_day = df["2. high"].max()  # Get highest stock price of the day
             
-            # Train-test split (80:20)
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            
-            # Scale the data
-            scaler = StandardScaler()
-            X_train_scaled = scaler.fit_transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            
-            # Train SVM model
-            svm_model = SVR(kernel='rbf')
-            svm_model.fit(X_train_scaled, y_train)
-            
-            # Predict future prices
-            future_hours = np.arange(df['Time'].max() + 1, df['Time'].max() + 24, 1).reshape(-1, 1)
-            future_hours_scaled = scaler.transform(future_hours)
-            predicted_prices = svm_model.predict(future_hours_scaled)
-            
-            # Create future dataframe
-            future_times = pd.date_range(start=df.index[-1], periods=len(future_hours), freq="H")
-            future_df = pd.DataFrame({"Time": future_times, "Predicted Price": predicted_prices})
-            
-            # Plot predictions
-            st.subheader("📈 Future Stock Price Prediction (SVM Model)")
-            fig_pred = px.line(future_df, x="Time", y="Predicted Price", 
-                             title="📈 Predicted Stock Prices (Next 24 Hours)", 
-                             template="plotly_dark")
-            st.plotly_chart(fig_pred)
+            stock_prices[company] = highest_in_day
+
+            if highest_in_day > highest_price:
+                highest_price = highest_in_day
+                highest_company = company
+                highest_data = df
+
+    return highest_company, highest_price, stock_prices, highest_data
+
             
             # Profit/Loss Calculation
             future_price = predicted_prices[-1]
