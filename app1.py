@@ -572,17 +572,17 @@ def find_highest_stock():
 
             
             # Profit/Loss Calculation
-            future_price = predicted_prices[-1]
-            future_value = num_stocks * future_price
-            profit_loss = future_value - total_cost
-            profit_loss_percentage = (profit_loss / total_cost) * 100
+        future_price = predicted_prices[-1]
+        future_value = num_stocks * future_price
+        profit_loss = future_value - total_cost
+        profit_loss_percentage = (profit_loss / total_cost) * 100
 
-            if profit_loss > 0:
-                st.success(f"📈 Profit: ${profit_loss:.2f} ({profit_loss_percentage:.2f}%)")
-                st.info(f"💡 Recommendation: Consider selling when price reaches ${future_price:.2f}")
-            else:
-                st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
-                st.warning("💡 Recommendation: Do not invest at this time")
+        if profit_loss > 0:
+            st.success(f"📈 Profit: ${profit_loss:.2f} ({profit_loss_percentage:.2f}%)")
+            st.info(f"💡 Recommendation: Consider selling when price reaches ${future_price:.2f}")
+        else:
+            st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
+            st.warning("💡 Recommendation: Do not invest at this time")
 
 # Price Alert Section
 # Price Alert Section
