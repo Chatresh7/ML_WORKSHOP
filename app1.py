@@ -572,6 +572,7 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
                 st.warning("💡 Recommendation: Do not invest at this time")
 
 # Price Alert Section
+# Price Alert Section
 elif st.session_state.page == "🚨 Price Alert":
     st.title("🚨 Price Alert")
 
@@ -582,22 +583,27 @@ elif st.session_state.page == "🚨 Price Alert":
     st.subheader("🔔 Set Price Alert")
     selected_company = st.selectbox("📌 Choose a Company", list(companies.keys()))
     alert_price = st.number_input("💰 Enter Alert Price", min_value=0.0, format="%.2f")
-    
+    user_email = st.text_input("📧 Enter your Email ID", placeholder="yourname@example.com")
+
     if st.button("✅ Set Alert"):
-        st.session_state.alerts.append({
-            "company": selected_company,
-            "symbol": companies[selected_company],
-            "alert_price": alert_price
-        })
-        st.success(f"🚀 Alert set for {selected_company} at ${alert_price:.2f}")
+        if user_email:
+            st.session_state.alerts.append({
+                "company": selected_company,
+                "symbol": companies[selected_company],
+                "alert_price": alert_price,
+                "email": user_email
+            })
+            st.success(f"🚀 Alert set for {selected_company} at ${alert_price:.2f}. You will be notified at {user_email}.")
+        else:
+            st.error("❌ Please enter a valid Email ID.")
 
     # Active Alerts
     st.subheader("📋 Active Alerts")
     if st.session_state.alerts:
         for i, alert in enumerate(st.session_state.alerts):
-            col1, col2 = st.columns([4,1])
+            col1, col2 = st.columns([4, 1])
             with col1:
-                st.write(f"{i + 1}. {alert['company']} - Alert at ${alert['alert_price']:.2f}")
+                st.write(f"{i + 1}. {alert['company']} - Alert at ${alert['alert_price']:.2f} (Email: {alert['email']})")
             with col2:
                 if st.button(f"❌ Clear {i+1}"):
                     st.session_state.alerts.pop(i)
@@ -616,12 +622,14 @@ elif st.session_state.page == "🚨 Price Alert":
                     current_price = df["Close"].iloc[-1]
                     if current_price >= alert["alert_price"]:
                         st.success(f"🚨 {alert['company']} Alert Triggered! Current: ${current_price:.2f}")
+                        # Here, you can add an email notification system using SMTP or a third-party API.
                     else:
                         st.info(f"⏳ {alert['company']} at ${current_price:.2f} (Target: ${alert['alert_price']:.2f})")
                 else:
                     st.warning(f"⚠ Missing data for {alert['company']}")
             else:
                 st.warning(f"⚠ Couldn't fetch data for {alert['company']}")
+
 
 # Stock Comparison Section (Updated)
 elif st.session_state.page == "🔄 Stock Comparison":
