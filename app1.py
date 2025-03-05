@@ -570,6 +570,62 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
             else:
                 st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
                 st.warning("💡 Recommendation: Do not invest at this time")
+# Top Gainers & Losers Section
+elif st.session_state.page == "📊 Top Gainers & Losers":
+    st.title("📊 Top Gainers & Losers")
+
+    gainers = {}
+    losers = {}
+
+    for company, symbol in companies.items():
+        stock_data = get_stock_data(symbol)
+        if stock_data:
+            df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+            df.index = pd.to_datetime(df.index)
+            df = df.sort_index()
+            df.columns = ["Open", "High", "Low", "Close", "Volume"]
+
+            open_price = df.iloc[0]["Open"]
+            close_price = df.iloc[-1]["Close"]
+            change = close_price - open_price
+
+            if change > 0:
+                gainers[company] = change
+            else:
+                losers[company] = change
+
+    # Display Top Gainer
+    if gainers:
+        top_gainer = max(gainers, key=gainers.get)
+        st.subheader(f"📈 Top Gainer: {top_gainer}")
+        symbol = companies[top_gainer]
+        df = pd.DataFrame.from_dict(get_stock_data(symbol), orient="index", dtype=float)
+        df.index = pd.to_datetime(df.index)
+        df = df.sort_index()
+        df.columns = ["Open", "High", "Low", "Close", "Volume"]
+
+        st.metric(label="📈 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+        st.metric(label="📈 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+        fig_gainer = px.line(df, x=df.index, y="Close", title=f"{top_gainer} Stock Price")
+        st.plotly_chart(fig_gainer)
+
+    # Display Top Loser
+    if losers:
+        top_loser = min(losers, key=losers.get)
+        st.subheader(f"📉 Top Loser: {top_loser}")
+        symbol = companies[top_loser]
+        df = pd.DataFrame.from_dict(get_stock_data(symbol), orient="index", dtype=float)
+        df.index = pd.to_datetime(df.index)
+        df = df.sort_index()
+        df.columns = ["Open", "High", "Low", "Close", "Volume"]
+
+        st.metric(label="📉 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+        st.metric(label="📉 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+        fig_loser = px.line(df, x=df.index, y="Close", title=f"{top_loser} Stock Price")
+        st.plotly_chart(fig_loser)
+
 
 # Price Alert Section
 # Price Alert Section
