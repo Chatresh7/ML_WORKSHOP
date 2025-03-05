@@ -136,9 +136,7 @@ if "authenticated" not in st.session_state:
 if not st.session_state.authenticated:
     login_page()
 
-# =================================================================
-# REST OF YOUR ORIGINAL CODE STARTS HERE (Only for authenticated users)
-# =================================================================
+
 
 # Add logout button to sidebar
 # Modified logout button and welcome message
@@ -218,12 +216,12 @@ if st.sidebar.button("🏠 Home"):
     st.session_state.page = "🏠 Home"
 if st.sidebar.button("📊 Stock Market Dashboard"):
     st.session_state.page = "📊 Stock Market Dashboard"
-if st.sidebar.button("📊 Top Gainers & Losers"):  # ✅ Added this button
-    st.session_state.page = "📊 Top Gainers & Losers"
 if st.sidebar.button("🚨 Price Alert"):
     st.session_state.page = "🚨 Price Alert"
 if st.sidebar.button("🔄 Stock Comparison"):
     st.session_state.page = "🔄 Stock Comparison"
+if st.sidebar.button("📊 Top Gainers & Losers"):  
+    st.session_state.page = "📊 Top Gainers & Losers"
 
 
 # Set default page if not set
@@ -502,6 +500,100 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
             st.session_state.stock_data = df
         else:
             st.warning(f"⚠ Could not fetch data for {selected_company}.")
+    st.subheader("📊 Top Gainers & Losers")
+
+    gainers = {}
+    losers = {}
+
+    for company, symbol in companies.items():
+        stock_data = get_stock_data(symbol)
+
+        if isinstance(stock_data, str):
+            try:
+                stock_data = json.loads(stock_data)
+            except json.JSONDecodeError:
+                st.error(f"❌ Invalid JSON response for {company} ({symbol})")
+                continue
+
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]
+        else:
+            st.error(f"⚠ No valid stock data found for {company} ({symbol})")
+            continue
+
+        try:
+            df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
+            df.index = pd.to_datetime(df.index)
+            df = df.sort_index()
+            df.columns = ["Open", "Close"]
+
+            open_price = df.iloc[0]["Open"]
+            close_price = df.iloc[-1]["Close"]
+            change = close_price - open_price
+
+            if change > 0:
+                gainers[company] = change
+            else:
+                losers[company] = change
+        except Exception as e:
+            st.error(f"❌ Error processing data for {company} ({symbol}): {str(e)}")
+            continue
+
+    # Display Top Gainer
+    if gainers:
+        top_gainer = max(gainers, key=gainers.get)
+        st.subheader(f"📈 Top Gainer: {top_gainer}")
+        symbol = companies[top_gainer]
+        stock_data = get_stock_data(symbol)
+
+        if isinstance(stock_data, str):
+            stock_data = json.loads(stock_data)
+
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]
+            try:
+                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
+                df.index = pd.to_datetime(df.index)
+                df = df.sort_index()
+                df.columns = ["Open", "Close"]
+
+                st.metric(label="📈 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+                st.metric(label="📈 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+                fig_gainer = px.line(df, x=df.index, y="Close", title=f"{top_gainer} Stock Price")
+                st.plotly_chart(fig_gainer)
+            except Exception as e:
+                st.error(f"❌ Error processing data for {top_gainer}: {str(e)}")
+        else:
+            st.warning(f"⚠ Could not fetch data for {top_gainer}")
+
+    # Display Top Loser
+    if losers:
+        top_loser = min(losers, key=losers.get)
+        st.subheader(f"📉 Top Loser: {top_loser}")
+        symbol = companies[top_loser]
+        stock_data = get_stock_data(symbol)
+
+        if isinstance(stock_data, str):
+            stock_data = json.loads(stock_data)
+
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]
+            try:
+                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
+                df.index = pd.to_datetime(df.index)
+                df = df.sort_index()
+                df.columns = ["Open", "Close"]
+
+                st.metric(label="📉 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
+                st.metric(label="📉 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
+
+                fig_loser = px.line(df, x=df.index, y="Close", title=f"{top_loser} Stock Price")
+                st.plotly_chart(fig_loser)
+            except Exception as e:
+                st.error(f"❌ Error processing data for {top_loser}: {str(e)}")
+        else:
+            st.warning(f"⚠ Could not fetch data for {top_loser}")
 
     if "stock_data" in st.session_state:
         df = st.session_state.stock_data
@@ -571,93 +663,7 @@ elif st.session_state.page == "📊 Stock Market Dashboard":
                 st.error(f"📉 Loss: ${abs(profit_loss):.2f} ({abs(profit_loss_percentage):.2f}%)")
                 st.warning("💡 Recommendation: Do not invest at this time")
 
-# Top Gainers & Losers Section
-elif st.session_state.page == "📊 Top Gainers & Losers":
-    st.title("📊 Top Gainers & Losers")
 
-    gainers = {}
-    losers = {}
-
-    for company, symbol in companies.items():
-        stock_data = get_stock_data(symbol)
-
-        # 🔍 Debugging: Print API response
-        st.write(f"🔍 API response for {company} ({symbol}):", stock_data)
-
-        # Extract actual stock price data
-        if "Time Series (5min)" in stock_data:
-            stock_data = stock_data["Time Series (5min)"]  # ✅ Extract actual stock values
-        else:
-            st.error(f"⚠ No valid stock data found for {company} ({symbol})")
-            continue  # Skip this company if no data is available
-
-        try:
-            df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
-            df.index = pd.to_datetime(df.index)
-            df = df.sort_index()
-            df.columns = ["Open", "High", "Low", "Close", "Volume"]
-
-            open_price = df.iloc[0]["Open"]
-            close_price = df.iloc[-1]["Close"]
-            change = close_price - open_price
-
-            if change > 0:
-                gainers[company] = change
-            else:
-                losers[company] = change
-        except Exception as e:
-            st.error(f"❌ Error processing data for {company} ({symbol}): {str(e)}")
-            continue  # Skip this company if there's an error
-
-    # Display Top Gainer
-    if gainers:
-        top_gainer = max(gainers, key=gainers.get)
-        st.subheader(f"📈 Top Gainer: {top_gainer}")
-        symbol = companies[top_gainer]
-        stock_data = get_stock_data(symbol)
-
-        if "Time Series (5min)" in stock_data:
-            stock_data = stock_data["Time Series (5min)"]
-            try:
-                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
-                df.index = pd.to_datetime(df.index)
-                df = df.sort_index()
-                df.columns = ["Open", "High", "Low", "Close", "Volume"]
-
-                st.metric(label="📈 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
-                st.metric(label="📈 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
-
-                fig_gainer = px.line(df, x=df.index, y="Close", title=f"{top_gainer} Stock Price")
-                st.plotly_chart(fig_gainer)
-            except Exception as e:
-                st.error(f"❌ Error processing data for {top_gainer}: {str(e)}")
-        else:
-            st.warning(f"⚠ Could not fetch data for {top_gainer}")
-
-    # Display Top Loser
-    if losers:
-        top_loser = min(losers, key=losers.get)
-        st.subheader(f"📉 Top Loser: {top_loser}")
-        symbol = companies[top_loser]
-        stock_data = get_stock_data(symbol)
-
-        if "Time Series (5min)" in stock_data:
-            stock_data = stock_data["Time Series (5min)"]
-            try:
-                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
-                df.index = pd.to_datetime(df.index)
-                df = df.sort_index()
-                df.columns = ["Open", "High", "Low", "Close", "Volume"]
-
-                st.metric(label="📉 Open Price", value=f"${df.iloc[0]['Open']:.2f}")
-                st.metric(label="📉 Current Price", value=f"${df.iloc[-1]['Close']:.2f}")
-
-                fig_loser = px.line(df, x=df.index, y="Close", title=f"{top_loser} Stock Price")
-                st.plotly_chart(fig_loser)
-            except Exception as e:
-                st.error(f"❌ Error processing data for {top_loser}: {str(e)}")
-        else:
-            st.warning(f"⚠ Could not fetch data for {top_loser}")
 
 
 # Price Alert Section
