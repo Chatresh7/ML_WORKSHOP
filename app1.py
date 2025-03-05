@@ -209,9 +209,6 @@ def get_stock_data(symbol):
     return response.json()
 
 # Initialize session state
-if "alerts" not in st.session_state:
-    st.session_state.alerts = []
-
 # Sidebar Navigation
 st.sidebar.title("📌 Navigation")
 st.sidebar.markdown("---")  # Adds a horizontal line for separation
@@ -221,10 +218,13 @@ if st.sidebar.button("🏠 Home"):
     st.session_state.page = "🏠 Home"
 if st.sidebar.button("📊 Stock Market Dashboard"):
     st.session_state.page = "📊 Stock Market Dashboard"
+if st.sidebar.button("📊 Top Gainers & Losers"):  # ✅ Added this button
+    st.session_state.page = "📊 Top Gainers & Losers"
 if st.sidebar.button("🚨 Price Alert"):
     st.session_state.page = "🚨 Price Alert"
 if st.sidebar.button("🔄 Stock Comparison"):
     st.session_state.page = "🔄 Stock Comparison"
+
 
 # Set default page if not set
 if "page" not in st.session_state:
