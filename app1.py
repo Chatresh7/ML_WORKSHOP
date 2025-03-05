@@ -581,13 +581,18 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
     for company, symbol in companies.items():
         stock_data = get_stock_data(symbol)
 
-        # 🔍 Debugging: Print the API response to check the format
-        if not stock_data or not isinstance(stock_data, dict):
-            st.error(f"❌ Failed to fetch data for {company} ({symbol}). API response: {stock_data}")
-            continue  # Skip this company if data is invalid
+        # 🔍 Debugging: Print API response
+        st.write(f"🔍 API response for {company} ({symbol}):", stock_data)
+
+        # Extract actual stock price data
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]  # ✅ Extract actual stock values
+        else:
+            st.error(f"⚠ No valid stock data found for {company} ({symbol})")
+            continue  # Skip this company if no data is available
 
         try:
-            df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+            df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
             df.index = pd.to_datetime(df.index)
             df = df.sort_index()
             df.columns = ["Open", "High", "Low", "Close", "Volume"]
@@ -611,9 +616,10 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
         symbol = companies[top_gainer]
         stock_data = get_stock_data(symbol)
 
-        if stock_data and isinstance(stock_data, dict):
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]
             try:
-                df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
                 df.index = pd.to_datetime(df.index)
                 df = df.sort_index()
                 df.columns = ["Open", "High", "Low", "Close", "Volume"]
@@ -635,9 +641,10 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
         symbol = companies[top_loser]
         stock_data = get_stock_data(symbol)
 
-        if stock_data and isinstance(stock_data, dict):
+        if "Time Series (5min)" in stock_data:
+            stock_data = stock_data["Time Series (5min)"]
             try:
-                df = pd.DataFrame.from_dict(stock_data, orient="index", dtype=float)
+                df = pd.DataFrame.from_dict(stock_data, orient="index").astype(float)
                 df.index = pd.to_datetime(df.index)
                 df = df.sort_index()
                 df.columns = ["Open", "High", "Low", "Close", "Volume"]
