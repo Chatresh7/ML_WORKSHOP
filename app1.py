@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import time
 
 # Set Page Configuration
 st.set_page_config(page_title="Stock Market App", layout="wide")
@@ -192,19 +193,24 @@ companies = {
     "Microsoft (MSFT)": "MSFT",
     "Google (GOOGL)": "GOOGL",
     "Amazon (AMZN)": "AMZN",
-    "Tesla (TSLA)": "TSLA",
-    "Meta (META)": "META",
-    "Netflix (NFLX)": "NFLX",
-    "Nvidia (NVDA)": "NVDA",
-    "IBM (IBM)": "IBM",
-    "Intel (INTC)": "INTC"
+    "Tesla (TSLA)": "TSLA"
 }
 
 # Fetch Stock Data Function
 def get_stock_data(symbol):
-    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&interval=5min&apikey={API_KEY}&outputsize=full"
+    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&interval=5min&apikey={API_KEY}"
     response = requests.get(url)
-    return response.json()
+    data = response.json()
+
+    if "Note" in data:
+        st.error("⚠ API limit reached. Please wait 1 minute.")
+        return None
+
+    if "Error Message" in data:
+        st.error(f"Invalid symbol: {symbol}")
+        return None
+
+    return data
 
 # Initialize session state
 # Sidebar Navigation
@@ -748,6 +754,7 @@ elif st.session_state.page == "📊 Top Gainers & Losers":
     losers = {}
     for company, symbol in companies.items():
         stock_data = get_stock_data(symbol)
+        time.sleep(12)
         
         # Check if data is fetched successfully and contains the required key
         if stock_data and "Time Series (5min)" in stock_data:
